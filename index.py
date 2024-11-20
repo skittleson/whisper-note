@@ -3,21 +3,17 @@
 import sys
 import logging
 import readline
+from queue import Queue
+from threading import Thread
 import sounddevice
 import speech_recognition as sr
 import numpy as np
 from faster_whisper import WhisperModel
 from pydub import AudioSegment
 from rich.console import Console
-from rich.console import Text
-from rich.panel import Panel
 import pyperclip
-from rich.layout import Layout
-from rich.live import Live
-from queue import Queue
-from threading import Thread
-MODEL_SIZE = "small.en"
 
+MODEL_SIZE = "small.en"
 logging.getLogger(sounddevice.__name__).setLevel(logging.CRITICAL)
 model = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
 console = Console()

@@ -19,4 +19,6 @@ install: create-venv
 	$(INSTALL_DEPS)
 
 portable: activate
-	pyinstaller index.py -n wnote
+	rm -rf build/
+	rm -rf dist/
+	pyinstaller index.py --onefile -n wnote
