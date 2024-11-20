@@ -1,29 +1,22 @@
 VENV_DIR = .venv
 PYTHON = python
-ACTIVATE = source $(VENV_DIR)/bin/activate
 INSTALL_DEPS = pip install -r requirements.txt
+
+default:
+	@echo "must do something"
 
 create-venv:
 	@echo "Creating virtual environment..."
 	$(PYTHON) -m venv $(VENV_DIR)
 
-activate-venv:
+activate:
 	@echo "Activating virtual environment..."
-	@$(ACTIVATE)
+	. $(VENV_DIR)/bin/activate
 
-install-deps: create-venv
+install: create-venv
 	@echo "Installing dependencies..."
-	sudo apt install -y portaudio19-dev xclip
+	sudo apt install -y portaudio19-dev xclip ffmpeg
 	$(INSTALL_DEPS)
 
-# Default target
-all: check-venv
-
-check-venv:
-	@if [ ! -d "$(VENV_DIR)" ]; then \
-		echo "Virtual environment not found. Installing dependencies..."; \
-		$(MAKE) install-deps; \
-	else \
-		echo "Virtual environment found. Skipping dependency installation."; \
-	fi
-	@echo "Setup complete. Virtual environment is ready."
+portable: activate
+	pyinstaller index.py -n wnote
