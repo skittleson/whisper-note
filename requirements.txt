@@ -1,0 +1,9 @@
+SpeechRecognition
+rich
+pyinstaller
+pyaudio
+torch
+faster-whisper
+pydub
+sounddevice
+pyperclip
