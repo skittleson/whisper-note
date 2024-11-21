@@ -15,7 +15,7 @@ activate:
 
 install: create-venv
 	@echo "Installing dependencies..."
-	sudo apt install -y portaudio19-dev xclip ffmpeg
+	sudo  apt install -y portaudio19-dev xclip ffmpeg
 	$(INSTALL_DEPS)
 
 portable: activate
