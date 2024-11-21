@@ -1,4 +1,5 @@
 {
     "makefile.configureOnOpen": true,
-    "python.defaultInterpreterPath":".venv/bin/python"
+    "python.defaultInterpreterPath":".venv/bin/python",
+    "editor.defaultFormatter": "ms-python.black-formatter"
 }
