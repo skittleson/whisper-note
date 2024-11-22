@@ -5,9 +5,11 @@ from threading import Thread
 from queue import Queue
 import sounddevice
 import speech_recognition as sr
+import wave
 import numpy as np
 from faster_whisper import WhisperModel
 from pydub import AudioSegment
+import torch
 
 logging.getLogger(sounddevice.__name__).setLevel(logging.CRITICAL)
 
@@ -16,6 +18,8 @@ class RecognizerLive:
     """Transcribe incoming audio chunks to text"""
 
     def __init__(self) -> None:
+        # device = "gpu" if torch.cuda.is_available() else "gpu"
+        # print(device)
         self._model = WhisperModel("small.en", device="cpu", compute_type="int8")
         self._recognizer = sr.Recognizer()
         self._audio_queue = Queue()
@@ -41,6 +45,38 @@ class RecognizerLive:
             audio_segment = audio_segment.set_channels(1)
         arr = np.array(audio_segment.get_array_of_samples())
         arr = arr.astype(np.float32) / 32768.0
+
+        import os
+        import io
+        if os.path.exists("test01.wav"):
+            data = []
+            w = wave.open("test01.wav", 'rb')
+            data.append( [w.getparams(), w.readframes(w.getnframes())] )
+            w.close()
+            
+            ww = wave.open(io.BytesIO(audio.get_wav_data()), 'rb') 
+            data.append( [ww.getparams(), ww.readframes(ww.getnframes())] )
+            ww.close()
+
+            output = wave.open("test01.wav", 'wb')
+            output.setparams(data[0][0])
+            output.writeframes(data[0][1])
+            output.writeframes(data[1][1])
+            output.close()
+            
+        else:
+            with open("test01.wav", "wb") as f:
+                f.write(audio.get_wav_data())
+        # wav_file: wave.Wave_write = wave.open("test.wav", "wb")
+        # if wav_file.tell() == 0:  # if the file is empty, we set up the parameters
+        #     wav_file.setnchannels(audio_segment.channels)  # Mono audio
+        #     wav_file.setsampwidth(audio_segment.sample_width)  # 2 bytes per sample (16-bit)
+        #     wav_file.setframerate(audio_segment.frame_rate)
+
+        # # Write the audio chunk to the WAV file
+        # wav_file.writeframes()
+        # wav_file.close()
+
         return arr
 
     def _recognize_worker(self):
