@@ -2,14 +2,13 @@
 
 import logging
 from threading import Thread
+import os
+import io
+import wave
 from queue import Queue
 import sounddevice
 import speech_recognition as sr
-import wave
-import numpy as np
 from faster_whisper import WhisperModel
-from pydub import AudioSegment
-import torch
 
 logging.getLogger(sounddevice.__name__).setLevel(logging.CRITICAL)
 
@@ -26,75 +25,53 @@ class RecognizerLive:
         self._text_queue = Queue()
         self.callback_phrase = None
 
-    def _audio_to_file_object(self, audio: sr.AudioData):
-        """Converts audio stream into object for whisper"""
+    def _record_audio_disk(self, audio: sr.AudioData, output_file: str):
+        """Creates and/or appends audio chunks to disk"""
 
-        audio_segment = AudioSegment(
-            data=audio.get_raw_data(),
-            sample_width=audio.sample_width,
-            frame_rate=audio.sample_rate,
-            channels=1,
-        )
-
-        # convert to expected format
-        if audio_segment.frame_rate != 16000:  # 16 kHz
-            audio_segment = audio_segment.set_frame_rate(16000)
-        if audio_segment.sample_width != 2:  # int16
-            audio_segment = audio_segment.set_sample_width(2)
-        if audio_segment.channels != 1:  # mono
-            audio_segment = audio_segment.set_channels(1)
-        arr = np.array(audio_segment.get_array_of_samples())
-        arr = arr.astype(np.float32) / 32768.0
-
-        import os
-        import io
-        if os.path.exists("test01.wav"):
+        if os.path.exists(output_file):
             data = []
-            w = wave.open("test01.wav", 'rb')
-            data.append( [w.getparams(), w.readframes(w.getnframes())] )
+            w = wave.open(output_file, "rb")
+            data.append([w.getparams(), w.readframes(w.getnframes())])
             w.close()
-            
-            ww = wave.open(io.BytesIO(audio.get_wav_data()), 'rb') 
-            data.append( [ww.getparams(), ww.readframes(ww.getnframes())] )
+
+            ww = wave.open(io.BytesIO(audio.get_wav_data()), "rb")
+            data.append([ww.getparams(), ww.readframes(ww.getnframes())])
             ww.close()
 
-            output = wave.open("test01.wav", 'wb')
+            output = wave.open(output_file, "wb")
             output.setparams(data[0][0])
             output.writeframes(data[0][1])
             output.writeframes(data[1][1])
             output.close()
-            
+
         else:
-            with open("test01.wav", "wb") as f:
+            with open(output_file, "wb") as f:
                 f.write(audio.get_wav_data())
-        # wav_file: wave.Wave_write = wave.open("test.wav", "wb")
-        # if wav_file.tell() == 0:  # if the file is empty, we set up the parameters
-        #     wav_file.setnchannels(audio_segment.channels)  # Mono audio
-        #     wav_file.setsampwidth(audio_segment.sample_width)  # 2 bytes per sample (16-bit)
-        #     wav_file.setframerate(audio_segment.frame_rate)
+        
 
-        # # Write the audio chunk to the WAV file
-        # wav_file.writeframes()
-        # wav_file.close()
+    def transcribe(self, audio_file):
+        """Transcribe audio like file"""
 
-        return arr
+        segments, _ = self._model.transcribe(
+            audio_file,
+            beam_size=5,
+            word_timestamps=False,
+            vad_filter=True,
+        )
+        segments = list(segments)
+        content = ("".join(segment.text for segment in segments)).strip()
+        return content
 
     def _recognize_worker(self):
         while True:
-            audio = self._audio_queue.get()
+            audio : sr.AudioData = self._audio_queue.get()
             if audio is None:
                 break  # stop processing if the main thread is done
 
             # received audio data, now we'll recognize it
             try:
-                segments, _ = self._model.transcribe(
-                    self._audio_to_file_object(audio),
-                    beam_size=5,
-                    word_timestamps=False,
-                    vad_filter=True,
-                )
-                segments = list(segments)
-                content = ("".join(segment.text for segment in segments)).strip()
+                audio_bytes = io.BytesIO(audio.get_wav_data())
+                content = self.transcribe(audio_bytes)
                 if len(content) < 1:
                     continue
                 self._text_queue.put(content)
@@ -105,6 +82,7 @@ class RecognizerLive:
             self._audio_queue.task_done()  # mark the audio processing job as completed in the queue
 
     def _audio_thread_listen(self):
+
         # start a new thread to recognize audio, while this thread focuses on listening
         recognize_thread = Thread(target=self._recognize_worker)
         recognize_thread.daemon = True

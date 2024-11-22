@@ -1,6 +1,7 @@
 """Whisper app for taking notes through dictation via the cli."""
 
 import sys
+import os
 import readline
 from rich.console import Console
 from rich.prompt import Confirm
@@ -29,19 +30,19 @@ def console_user_experience():
     note = ""
     while True:
         console.print("Speak until CTRL+C.")
-        user_content = r.run()
+        live_content = r.run()
         console.clear()
         try:
             console.print(note, style="dim")
-            console.print("ENTER to accept. CTRL+C to exit.")
-            readline.set_startup_hook(lambda: readline.insert_text(user_content))
-            note = note + " " + console.input()
+            console.print("\r\nENTER to accept. CTRL+C to exit.")
+            readline.set_startup_hook(lambda: readline.insert_text(live_content))
+            note = (note + " " + console.input()).strip()
             console.clear()
             console.print(note, style="dim")
         except KeyboardInterrupt:
             break
     pyperclip.copy(note)
-    console.print("saved to clipboard!")
+    console.print("\r\nSaved to clipboard!")
 
 
 if __name__ == "__main__":
