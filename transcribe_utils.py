@@ -47,7 +47,6 @@ class RecognizerLive:
         else:
             with open(output_file, "wb") as f:
                 f.write(audio.get_wav_data())
-        
 
     def transcribe(self, audio_file):
         """Transcribe audio like file"""
@@ -64,7 +63,7 @@ class RecognizerLive:
 
     def _recognize_worker(self):
         while True:
-            audio : sr.AudioData = self._audio_queue.get()
+            audio: sr.AudioData = self._audio_queue.get()
             if audio is None:
                 break  # stop processing if the main thread is done
 

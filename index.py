@@ -1,13 +1,11 @@
 """Whisper app for taking notes through dictation via the cli."""
 
 import sys
-import os
 import readline
 from rich.console import Console
 from rich.prompt import Confirm
 import pyperclip
 from transcribe_utils import RecognizerLive
-
 
 console = Console()
 r = RecognizerLive()
@@ -18,8 +16,11 @@ def console_warm_session():
     """Keep models warmed up"""
 
     console_user_experience()
-    if Confirm.ask("Start new session?"):
-        console_warm_session()
+    try:
+        if Confirm.ask("Start new session?"):
+            console_warm_session()
+    except KeyboardInterrupt:
+        sys.exit(0)
     sys.exit(0)
 
 
